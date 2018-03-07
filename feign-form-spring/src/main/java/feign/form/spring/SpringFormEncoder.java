@@ -16,19 +16,18 @@
 
 package feign.form.spring;
 
-import static feign.form.ContentType.MULTIPART;
-import static java.util.Collections.singletonMap;
-
-import java.lang.reflect.Type;
-
 import feign.RequestTemplate;
 import feign.codec.EncodeException;
 import feign.codec.Encoder;
 import feign.form.FormEncoder;
 import feign.form.MultipartFormContentProcessor;
-
 import lombok.val;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.lang.reflect.Type;
+
+import static feign.form.ContentType.MULTIPART;
+import static java.util.Collections.singletonMap;
 
 /**
  * Adds support for {@link MultipartFile} type to {@link FormEncoder}.
@@ -60,13 +59,19 @@ public class SpringFormEncoder extends FormEncoder {
 
   @Override
   public void encode (Object object, Type bodyType, RequestTemplate template) throws EncodeException {
-    if (!bodyType.equals(MultipartFile.class)) {
+      if (bodyType.equals(MultipartFile.class)) {
+          val file = (MultipartFile) object;
+          val data = singletonMap(file.getName(), object);
+          super.encode(data, MAP_STRING_WILDCARD, template);
+          return;
+      } else if (bodyType.equals(MultipartFile[].class)) {
+          val file = (MultipartFile[]) object;
+          if(file != null) {
+              val data = singletonMap(file.length == 0 ? "" : file[0].getName(), object);
+              super.encode(data, MAP_STRING_WILDCARD, template);
+              return;
+          }
+      }
       super.encode(object, bodyType, template);
-      return;
-    }
-
-    val file = (MultipartFile) object;
-    val data = singletonMap(file.getName(), object);
-    super.encode(data, MAP_STRING_WILDCARD, template);
   }
 }
